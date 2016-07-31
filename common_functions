@@ -1,0 +1,391 @@
+#!/bin/bash
+# This script is under license BEER-WARE
+# "THE BEER-WARE LICENSE" (Revision 42):
+# <eric@obarun.org> wrote this file.  As long as you retain this notice you
+# can do whatever you want with this stuff. If we meet some day, and you think
+# this stuff is worth it, you can buy me a beer in return.   Eric Vidal
+
+# common functions file for obarun packages
+
+##		Shell color 
+
+unset bold reset red bred green bgreen yellow byellow blue bblue
+bold=$(tput bold)
+reset=$(tput sgr0)
+red=$(tput setaf 1)
+bred=${bold}$(tput setaf 1)
+green=$(tput setaf 2)
+bgreen=${bold}$(tput setaf 2)
+yellow=$(tput setaf 3)
+byellow=${bold}$(tput setaf 3)
+blue=$(tput setaf 4)
+bblue=${bold}$(tput setaf 4)
+
+
+## 		Information display by the script 
+
+echo_bold(){
+	local msg=$1; shift 
+	printf "${bold}${msg}${reset}\n" "${@}" >&1
+}
+echo_info(){
+	local msg=$1; shift 
+	printf "${byellow}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_info_menu(){
+	local msg=$1; shift 
+	printf "${byellow}${msg} ${reset}\n" "${@}" >&1
+}
+echo_retry(){
+	local msg=$1; shift 
+	printf "${bblue}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_valid(){
+	local msg=$1; shift 
+	printf "${bgreen}    ->${msg} ${reset}\n" "${@}" >&1
+}
+echo_notvalid(){
+	local msg=$1; shift 
+	printf "${byellow}    ->${msg} ${reset}\n" "${@}" >&1
+}
+echo_display(){
+	local msg=$1; shift 
+	printf "${bold}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_error(){
+	local msg=$1; shift 
+	printf "${bred}    ->${msg} ${reset}\n" "${@}" >&2
+}
+answer(){
+	echo_retry " Please answer y or n :"
+}
+
+
+## 		Exit
+
+die (){
+      local message 
+      message="$1"
+ 
+      if [[ -n "$message" ]] ; then
+        echo "${bred}==>> Error: ${message}${reset}"
+      else
+        echo "${bred}==>> Error: Script can not continue"
+      fi
+      exit 1
+}
+
+##		Reply functions
+## return rc=0 for yes
+## return rc=1 for no
+reply_answer(){
+	local reply
+	read reply
+	while [[ ! "$reply" = @(y|n) ]]; do
+		answer
+		read reply
+	done
+	if [ "$reply" == "y" ]; then
+		rc=0
+	else
+		rc=1
+	fi	
+}
+
+##		check if a directory is a valid mountpoint
+# ${1} directory to check
+# return rc=0 on success
+
+check_mountpoint(){
+	local _directory
+	_directory="${1}"
+	
+	if mountpoint -q "$_directory"; then
+		rc=0
+	else
+		rc=1
+	fi
+	
+	unset _directory
+}
+
+## 		Mount/unmount filesystem
+# $1 name of directory to check 
+# $2 action to do : mount/umount
+
+mount_umount(){
+	local rep action
+	rep="$1"
+	action="$2"
+	
+	_mount(){
+		echo_notvalid " Mounting $4"
+		mount "$@" 
+	}
+	
+	_umount(){
+		echo_notvalid " Unmounting $1"
+		umount $@
+	}
+			
+	if [[ "$action" == "mount" ]]; then
+		echo_display " Check mounted filesystem on $rep"
+		if ! [[ $(mount | grep "$rep"/proc) ]]; then
+			_mount -t proc proc "$rep/proc" -o nosuid,noexec,nodev 
+			_mount -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev 
+			_mount -t devtmpfs dev "$rep/dev" -o mode=0755,nosuid
+			_mount -t devpts devpts "$rep/dev/pts" -o mode=0620,gid=5,nosuid,noexec
+			_mount -t tmpfs shm "$rep/dev/shm" -o mode=1777,nosuid,nodev
+			_mount -t tmpfs run "$rep/run" -o nosuid,nodev,mode=0755
+			_mount -t tmpfs tmp "$rep/tmp" -o mode=1777,strictatime,nodev,nosuid
+		else
+			echo_valid " Filesystem already mounted in ${rep}"
+		fi
+	fi
+	if [[ "$action" == "umount" ]]; then
+		echo_display " Check mounted filesystem"
+		if [[ $(mount | grep "$rep"/proc) ]]; then
+			_umount "$rep/proc"
+			_umount "$rep/sys"
+			_umount "$rep/dev/pts"
+			_umount "$rep/dev/shm"
+			_umount "$rep/run"
+			_umount "$rep/tmp"
+			_umount "$rep/dev"
+		else
+			echo_valid " Filesystem not mounted in ${rep}"
+		fi
+	fi
+	unset rep action
+}
+
+## 		Check list option
+
+check_elements(){
+	for e in "${@:2}"; do [[ $e == $1 ]] && break; done;
+}
+
+##		Generate fstab
+# ${1} mountpoint directory
+
+gen_fstab(){
+	local _directory
+	_directory="${1}"
+	
+	echo_display " Generate fstab"
+	genfstab -p "$_directory" > "$_directory/etc/fstab" || die " Impossible to generate fstab"
+
+	unset _directory
+}
+
+#		Edit a file
+# ${1} name of the file to edit
+# ${2} path to the named file
+# ${3} name of the editor program
+
+edit_file(){
+	local _path _file _editor
+	_file="${1}"
+	_path="${2}"
+	_editor="${3}"
+	
+	"$_editor" "$_path"/"$_file"
+
+	unset _path _file _editor
+}
+
+##		Generate key
+
+pac_key(){
+	
+	local gpg_opts
+	
+	if ! [ -z "$1" ]; then
+		gpg_opts="--gpgdir $1"
+	fi
+	
+	echo_display " Start pacman-key"
+	haveged -w 1024
+	
+	pacman-key --init $gpg_opts
+	pacman-key --populate archlinux $gpg_opts
+	
+	unset gpg_opts
+}
+
+# ${1} gpg directory to use, can be empty
+
+check_gpg(){
+	
+	local gpg_opts
+	
+	if ! [ -z "$1" ]; then
+		gpg_opts="--gpgdir $1"
+	fi
+	# pacman-key -r failed without /root/.gnupg
+	# create it by dirmngr
+	# TODO: find a turn around
+	if ! [ -d /root/.gnupg ]; then
+		dirmngr &>/dev/null & pkill dirmngr
+	fi
+	
+	echo_display " Check if gpg key exist"	
+	if ! pacman-key -u $gpg_opts &>/dev/null; then
+		echo_notvalid " Gpg doesn't exist, create it..."
+		if ! [ -z $gpg_opts ]; then
+			pac_key "$gpg_dir"
+		else
+			pac_key
+		fi
+	else
+		echo_valid " Gpg key exist, Refresh it..."
+		pacman-key -u $gpg_opts
+	fi
+	
+	# TODO : make a function to let the choice at user to add or not Eric vidal key
+	# or adding a personal key
+	echo_display " Check if Eric Vidal gpg signature exist"
+	if ! pacman-key --list-keys 7B45DAAC $gpg_opts &>/dev/null; then
+		echo_notvalid " Add Eric Vidal gpg signature, please wait"
+		pacman-key -r 7B45DAAC $gpg_opts
+		pacman-key --lsign-key 7B45DAAC $gpg_opts
+	else
+		echo_valid " Eric Vidal gpg signature already exist"
+	fi
+	
+	unset gpg_opts
+	
+	kill_(){
+		local k
+		for k in haveged gpg-agent dirmngr; do
+			killall -r $k 2>/dev/null
+		done
+		unset k
+	}
+	kill_
+}
+
+## 		Create temporary users
+
+user_tmp(){
+	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep usertmp) ]]; then
+		echo_display " Create a temporary user needed for the scripts"
+			if [[ -e /etc/sudoers ]]; then
+				useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash usertmp || die " Impossible to create user : usertmp"
+				echo "%usertmp ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+			else
+				echo "${bred}==>> The file /etc/sudoers doesn't exists,"
+				echo_notvalid " Installing sudo package"
+				pacman -S sudo
+				user_tmp
+			fi
+	fi
+}
+
+rem_usertmp(){
+	echo_display " Removing user : usertmp"
+	userdel -r usertmp
+	sed -i '/usertmp/d' /etc/sudoers
+}
+
+##		Update package automaticaly
+
+# ${1} name of the package to update
+# ${2} working directory to store the data
+# ${3} address to the git repository
+
+pac_update(){
+	
+	local status _pkgname build_dir rc work_dir _olpwd _adress
+	_pkgname="${1}"
+	work_dir="${2}"
+	_adress="${3}"
+	_oldpwd=`pwd`
+	_tmpdir=$(mktemp -d /tmp/$_pkgname.XXXXXX)
+	rc=0
+	
+	echo_display " Check $_pkgname version"
+	
+	# make build_dir directory
+	make_build_dir(){
+		if ! [ -d "$work_dir/update_package" ]; then
+			echo_notvalid " Create necessary directory"
+			mkdir -p -m0755 "$work_dir/update_package"
+			build_dir="$work_dir/update_package"
+		else
+			build_dir="$work_dir/update_package"
+		fi
+	}
+	
+	# check if pkgbuild exist
+	copy_pkgbuild(){
+		echo_notvalid " Copy PKGBUILD to ${green}[$build_dir/$_pkgname]${reset}"
+		cp -f "$build_dir"/PKGBUILD "$_tmpdir/PKGBUILD"
+	}
+	
+	# make package
+	make_package(){
+		user_tmp
+		copy_pkgbuild || die " Impossible to copy PKGBUILD"
+		cp -rf "$build_dir"/* "$_tmpdir"
+		chown -R usertmp:users "$_tmpdir"
+		cd "$_tmpdir"
+		echo_notvalid " Launch makepkg and install the new version if exist"
+		sudo -u usertmp makepkg -Cfi --nosign --noconfirm --needed
+		echo_notvalid " Copy $_pkgname compressed package to $build_dir"
+		cp *.pkg.tar.* "$build_dir"
+		sleep 2
+	}
+	
+	# check git repositories
+	check_update(){
+		cd "$build_dir"
+		status=$(git pull origin 2>/dev/null)
+		if [[ $status == "Already up-to-date." ]]; then
+			echo_valid " Git $status Nothing to do"
+			sleep 2
+		else
+			rc=1
+		fi
+	}
+	
+	# check current version 
+	check_version(){
+		cd "$build_dir"
+		local curr_version git_version
+		curr_version=$(pacman -Qi $_pkgname | grep "Version" | awk -F": " '{print $2}' | sed 's:-1::')
+		git_version=$(git rev-parse --short HEAD)
+		
+		check_update || die " Impossible to udpdate $_pkgname"
+		
+		if [[ $rc == 1 ]]; then
+			unset rc
+			echo_display " $_pkgname is out of date, updating please wait"
+			make_package || die " Impossible to make the package"
+			rc=1
+		fi
+		if ! [[ "$curr_version" == "$git_version" ]]; then
+			if [[ $rc == 1 ]]; then
+				unset rc
+				break
+			else
+				make_package || die " Impossible to make the package"
+			fi
+		fi
+	}	
+		
+	make_build_dir
+	
+	if ! [ -d "$build_dir/$_pkgname" ]; then
+		cd "$build_dir"
+		echo_notvalid " Clone repository form ${green}[$git_addr]${reset}"
+		git clone "$_adress"
+		make_package || die " Impossible to make the package"
+	else
+		check_version || die " Impossible to check the current version"
+	fi	
+	
+	cd $_oldpwd
+	
+	unset status _pkgname build_dir rc work_dir _olpwd _adress
+}
