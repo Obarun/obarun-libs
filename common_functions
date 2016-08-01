@@ -319,27 +319,24 @@ pac_update(){
 	
 	# check if pkgbuild exist
 	copy_pkgbuild(){
-		echo_notvalid " Copy PKGBUILD to ${green}[$build_dir/$_pkgname]${reset}"
-		cp -f "$build_dir"/PKGBUILD "$_tmpdir/PKGBUILD"
+		echo_notvalid " Copy PKGBUILD to ${green}[$build_dir/$_pkgname] to ${green}[$build_dir]${reset}"
+		cp -f "$build_dir/$_pkgname"/PKGBUILD "$build_dir"/PKGBUILD
 	}
 	
 	# make package
 	make_package(){
 		user_tmp
-		copy_pkgbuild || die " Impossible to copy PKGBUILD"
-		cp -rf "$build_dir"/* "$_tmpdir"
-		chown -R usertmp:users "$_tmpdir"
-		cd "$_tmpdir"
+		#copy_pkgbuild || die " Impossible to copy PKGBUILD"
+		chown -R usertmp:users "$build_dir"
+		cd "$build_dir/$_pkgname"
 		echo_notvalid " Launch makepkg and install the new version if exist"
 		sudo -u usertmp makepkg -Cfi --nosign --noconfirm --needed
-		echo_notvalid " Copy $_pkgname compressed package to $build_dir"
-		cp *.pkg.tar.* "$build_dir"
 		sleep 2
 	}
 	
 	# check git repositories
 	check_update(){
-		cd "$build_dir"
+		cd "$build_dir/$_pkgname"
 		status=$(git pull origin 2>/dev/null)
 		if [[ $status == "Already up-to-date." ]]; then
 			echo_valid " Git $status Nothing to do"
@@ -351,7 +348,7 @@ pac_update(){
 	
 	# check current version 
 	check_version(){
-		cd "$build_dir"
+		cd "$build_dir/$_pkgname"
 		local curr_version git_version
 		curr_version=$(pacman -Qi $_pkgname | grep "Version" | awk -F": " '{print $2}' | sed 's:-1::')
 		git_version=$(git rev-parse --short HEAD)
@@ -367,7 +364,6 @@ pac_update(){
 		if ! [[ "$curr_version" == "$git_version" ]]; then
 			if [[ $rc == 1 ]]; then
 				unset rc
-				break
 			else
 				make_package || die " Impossible to make the package"
 			fi
