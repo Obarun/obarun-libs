@@ -200,7 +200,7 @@ pac_key(){
 	
 	local gpg_opts
 	
-	if ! [ -z "$1" ]; then
+	if [[ ! -z "$1" ]]; then
 		gpg_opts="--gpgdir $1"
 	fi
 	
@@ -219,20 +219,20 @@ check_gpg(){
 	
 	local gpg_opts
 	
-	if ! [ -z "$1" ]; then
+	if [[ ! -z "$1" ]]; then
 		gpg_opts="--gpgdir $1"
 	fi
 	# pacman-key -r failed without /root/.gnupg
 	# create it by dirmngr
 	# TODO: find a turn around
-	if ! [ -d /root/.gnupg ]; then
+	if [[ ! -d /root/.gnupg ]]; then
 		dirmngr &>/dev/null & pkill dirmngr
 	fi
 	
 	echo_display " Check if gpg key exist"	
 	if ! pacman-key -u $gpg_opts &>/dev/null; then
 		echo_notvalid " Gpg doesn't exist, create it..."
-		if ! [ -z $gpg_opts ]; then
+		if [[ ! -z $gpg_opts ]]; then
 			pac_key "$gpg_dir"
 		else
 			pac_key
