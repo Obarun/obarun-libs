@@ -62,17 +62,22 @@ answer(){
 
 
 ## 		Exit
-
+# {1} message to display
+# {2} trap functions to call before exit
 die (){
-      local message 
-      message="$1"
- 
-      if [[ -n "$message" ]] ; then
-        echo "${bred}==>> Error: ${message}${reset}"
-      else
-        echo "${bred}==>> Error: Script can not continue"
-      fi
-      exit 1
+	local message _trap
+	message="${1}"
+	_trap="${2}"
+		
+	if [[ -n "${message}" ]] ; then
+		echo "${bred}==>> Error: ${message}${reset}"
+	else
+		echo "${bred}==>> Error: Script can not continue"
+	fi
+	
+	${_trap}
+	
+	exit 1
 }
 
 ##		Reply functions
@@ -266,26 +271,41 @@ check_gpg(){
 }
 
 ## 		Create temporary users
+# ${1} user name to create
 
-user_tmp(){
-	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep usertmp) ]]; then
+user_add(){
+	
+	local named
+	named="${1}"
+	
+	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep ${named}) ]]; then
 		echo_display " Create a temporary user needed for the scripts"
 			if [[ -e /etc/sudoers ]]; then
-				useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash usertmp || die " Impossible to create user : usertmp"
-				echo "%usertmp ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+				useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash ${named}
+				echo "%${named} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
 			else
 				echo "${bred}==>> The file /etc/sudoers doesn't exists,"
 				echo_notvalid " Installing sudo package"
 				pacman -S sudo
-				user_tmp
+				user_add "${named}"
 			fi
 	fi
+	
+	unset named
 }
 
-rem_usertmp(){
-	echo_display " Removing user : usertmp"
-	userdel -r usertmp
-	sed -i '/usertmp/d' /etc/sudoers
+# ${1} user name to delete
+
+user_del(){
+	
+	local named
+	named="${1}"
+	
+	echo_display " Removing user : ${named}"
+	userdel -r ${named} 
+	sed -i '/${named}/d' /etc/sudoers
+	
+	unset named
 }
 
 ##		Update package automaticaly
@@ -325,7 +345,7 @@ pac_update(){
 	
 	# make package
 	make_package(){
-		user_tmp
+		user_add "usertmp"
 		#copy_pkgbuild || die " Impossible to copy PKGBUILD"
 		chown -R usertmp:users "$build_dir"
 		cd "$build_dir/$_pkgname"
