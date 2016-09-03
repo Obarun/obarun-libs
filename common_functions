@@ -81,8 +81,8 @@ die (){
 }
 
 ##		Reply functions
-## return rc=0 for yes
-## return rc=1 for no
+## return 0 for yes
+## return 1 for no
 reply_answer(){
 	local reply
 	read reply
@@ -91,9 +91,9 @@ reply_answer(){
 		read reply
 	done
 	if [ "$reply" == "y" ]; then
-		rc=0
+		return 0
 	else
-		rc=1
+		return 1
 	fi	
 }
 
@@ -106,9 +106,9 @@ check_mountpoint(){
 	_directory="${1}"
 	
 	if mountpoint -q "$_directory"; then
-		rc=0
+		return 0
 	else
-		rc=1
+		return 1
 	fi
 	
 	unset _directory
@@ -214,6 +214,7 @@ pac_key(){
 	
 	pacman-key --init $gpg_opts
 	pacman-key --populate archlinux $gpg_opts
+	pacman-key --populate obarun $gpg_opts
 	
 	unset gpg_opts
 }
@@ -279,16 +280,8 @@ user_add(){
 	named="${1}"
 	
 	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep ${named}) ]]; then
-		echo_display " Create a temporary user needed for the scripts"
-			if [[ -e /etc/sudoers ]]; then
-				useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash ${named}
-				echo "%${named} ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
-			else
-				echo "${bred}==>> The file /etc/sudoers doesn't exists,"
-				echo_notvalid " Installing sudo package"
-				pacman -S sudo
-				user_add "${named}"
-			fi
+		echo_display " Create the temporary ${named} user"
+		useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash "${named}"
 	fi
 	
 	unset named
@@ -303,8 +296,7 @@ user_del(){
 	
 	echo_display " Removing user : ${named}"
 	userdel -r ${named} 
-	sed -i '/${named}/d' /etc/sudoers
-	
+		
 	unset named
 }
 
@@ -350,7 +342,7 @@ pac_update(){
 		chown -R usertmp:users "$build_dir"
 		cd "$build_dir/$_pkgname"
 		echo_notvalid " Launch makepkg and install the new version if exist"
-		sudo -u usertmp makepkg -Cfi --nosign --noconfirm --needed
+		su usertmp -c "makepkg -Cfi --nosign --noconfirm --needed"
 		sleep 2
 	}
 	
@@ -360,9 +352,10 @@ pac_update(){
 		status=$(git pull origin 2>/dev/null)
 		if [[ $status == "Already up-to-date." ]]; then
 			echo_valid " Git $status Nothing to do"
+			return 0
 			sleep 2
 		else
-			rc=1
+			return 1
 		fi
 	}
 	
@@ -375,8 +368,7 @@ pac_update(){
 		
 		check_update || die " Impossible to udpdate $_pkgname"
 		
-		if [[ $rc == 1 ]]; then
-			unset rc
+		if (( $? )); then
 			echo_display " $_pkgname is out of date, updating please wait"
 			make_package || die " Impossible to make the package"
 			rc=1
@@ -409,7 +401,7 @@ pac_update(){
 # ${1} path directories
 # ${2} name of directory
 # ${3} searched files
-# return rc=0 success, rc=1 fail
+# return 0 success, 1 fail
 search_in_dir(){
 	local path_dir search named sub_dir here 
 	local -a list files
@@ -423,8 +415,8 @@ search_in_dir(){
 		mapfile -t files < <(ls --group-directories-first -m ${path_dir}/${named})
 		while read -d "," here; do
 			case $here in
-				$search) rc=0 && break ;;
-				*) rc=1 ;;
+				$search) return 0 && break ;;
+				*) return 1 ;;
 			esac
 		done <<< ${files[@]}
 	done <<< "${list[@]}"
@@ -435,7 +427,7 @@ search_in_dir(){
 # ${1} path to the file
 # ${2} name of the file
 # ${3} searched on to the file
-# return rc=0 on success, rc=1 on fail
+# return 0 on success, 1 on fail
 search_in_file(){
 	local path_file named search line_ in_file
 	path_file="${1}"
@@ -445,8 +437,8 @@ search_in_file(){
 	
 	while read line_;do
 		case $line_ in
-			$search) rc=0 && break ;;
-			*) rc=1 ;;
+			$search) return 0 && break ;;
+			*) return 1 ;;
 		esac
 	done < "${in_file}"
 	
@@ -470,14 +462,14 @@ make_symlinks(){
 }
 
 # ${1} name of the directory
-# return rc=0 on success
+# return 0 on success, 1 for fail
 check_dir(){
 	local dir
 	dir="${1}"
 	if [ -d "${dir}" ]; then
-		rc=0
+		return 0
 	else
-		rc=1
+		return 1
 	fi
 	
 	unset dir
