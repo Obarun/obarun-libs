@@ -299,7 +299,32 @@ user_del(){
 		
 	unset named
 }
-
+# ${1} path to the file
+# ${2} name of the file
+# ${3} searched on to the file
+# return 0 on success, 1 on fail
+search_in_file(){
+	local path_file named search line_ in_file
+	path_file="${1}"
+	named="${2}"
+	search="${3}"
+	in_file="${path_file}/${named}"
+	
+	while read line_;do
+		case $line_ in
+			$search) rc=0 && break ;;
+			*) rc=1 ;;
+		esac
+	done < "${in_file}"
+	if [[ $rc == 0  ]]; then
+		unset rc
+		return 0
+	else
+		unset rc
+		return 1
+	fi 
+	unset path_file named search line_ in_file
+}
 ##		Update package automaticaly
 
 # ${1} name of the package to update
@@ -403,25 +428,30 @@ pac_update(){
 # ${3} searched files
 # return 0 success, 1 fail
 search_in_dir(){
-	local path_dir search named sub_dir here 
-	local -a list files
+	local path_dir search named here rc
+	local -a list 
 	path_dir="${1}"
 	named="${2}"
 	search="${3}"
 	
-	mapfile -t list < <(ls --group-directories-first -m ${path_dir}/)
+	mapfile -t list < <(ls --group-directories-first ${path_dir}/${named})
 	
-	for sub_dir in "${named}"; do
-		mapfile -t files < <(ls --group-directories-first -m ${path_dir}/${named})
-		while read -d "," here; do
-			case $here in
-				$search) return 0 && break ;;
-				*) return 1 ;;
+	for here in "${list[@]}"; do
+		case $here in
+				$search) rc=0 && break ;;
+				*) rc=1 ;;
 			esac
-		done <<< ${files[@]}
-	done <<< "${list[@]}"
+		
+	done
+	if [[ $rc == 0  ]]; then
+		unset rc
+		return 0
+	else
+		unset rc
+		return 1
+	fi
 	
-	unset path_dir search named sub_dir list files here
+	unset path_dir search named sub_dir list here rc
 }
 
 # ${1} path to the file
@@ -437,10 +467,18 @@ search_in_file(){
 	
 	while read line_;do
 		case $line_ in
-			$search) return 0 && break ;;
-			*) return 1 ;;
+			$search) rc=0 && break ;;
+			*) rc=1 ;;
 		esac
 	done < "${in_file}"
+	
+	if [[ $rc == 0  ]]; then
+		unset rc
+		return 0
+	else
+		unset rc
+		return 1
+	fi
 	
 	unset path_file named search line_ in_file
 }
@@ -466,7 +504,8 @@ make_symlinks(){
 check_dir(){
 	local dir
 	dir="${1}"
-	if [ -d "${dir}" ]; then
+	
+	if [[ -d "${dir}" ]]; then
 		return 0
 	else
 		return 1
