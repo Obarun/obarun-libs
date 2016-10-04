@@ -374,12 +374,21 @@ pac_update(){
 	# check git repositories
 	check_update(){
 		cd "$build_dir/$_pkgname"
-		status=$(git pull origin 2>/dev/null)
-		if [[ $status == "Already up-to-date." ]]; then
-			echo_valid " Git $status Nothing to do"
+	
+		# check the remote branch
+		git fetch origin || die " Impossible to fetch origin"	
+			
+		# emtpy status variable means up to date
+		status=$(git diff master origin/master)
+		
+		if [[ -z "${status}" ]]; then
+			echo_valid " Git already up to date, nothing to do"
 			return 0
 			sleep 2
 		else
+			# local is out of date, update it
+			echo_notvalid " Local branch is out-of-date, update it..."
+			git merge origin/master || die " Impossible merge origin to master branch"	
 			return 1
 		fi
 	}
@@ -391,7 +400,7 @@ pac_update(){
 		curr_version=$(pacman -Qi $_pkgname | grep "Version" | awk -F": " '{print $2}' | sed 's:-1::')
 		git_version=$(git rev-parse --short HEAD)
 		
-		check_update || die " Impossible to udpdate $_pkgname"
+		check_update #|| die " Impossible to udpdate $_pkgname"
 		
 		if (( $? )); then
 			echo_display " $_pkgname is out of date, updating please wait"
