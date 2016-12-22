@@ -201,75 +201,111 @@ edit_file(){
 
 ##		Generate key
 
+# {1} name to populate e.g. "obarun" or a list "archlinux obarun"
+# {2} gpg directory to use, can be empty
+
 pac_key(){
 	
-	local gpg_opts
+	local gpg_opts named 
+	local -a name_to_populate
 	
-	if [[ ! -z "$1" ]]; then
-		gpg_opts="--gpgdir $1"
+	name_to_populate=( "$1" )
+
+	if [[ ! -z "$2" ]]; then
+		gpg_opts="--gpgdir $2"
 	fi
 	
 	echo_display " Start pacman-key"
 	haveged -w 1024
 	
 	pacman-key --init $gpg_opts
-	pacman-key --populate archlinux $gpg_opts
-	pacman-key --populate obarun $gpg_opts
 	
-	unset gpg_opts
+	for named in ${name_to_populate[@]};do
+		echo_notvalid "populate $named"
+		pacman-key --populate "$named" "$gpg_opts"
+	done
+	
+	unset gpg_opts named name_to_populate
 }
 
 # ${1} gpg directory to use, can be empty
-
 check_gpg(){
 	
-	local gpg_opts
-	
+	local gpg_opts named 
+		
 	if [[ ! -z "$1" ]]; then
 		gpg_opts="--gpgdir $1"
 	fi
-	# pacman-key -r failed without /root/.gnupg
-	# create it by dirmngr
-	# TODO: find a turn around
-	if [[ ! -d /root/.gnupg ]]; then
-		dirmngr &>/dev/null & pkill dirmngr
-	fi
 	
 	echo_display " Check if gpg key exist"	
-	if ! pacman-key -u $gpg_opts &>/dev/null; then
+	pacman-key -u $gpg_opts &>/dev/null
+	
+	if (( $? ));then
 		echo_notvalid " Gpg doesn't exist, create it..."
 		if [[ ! -z $gpg_opts ]]; then
-			pac_key "$gpg_dir"
+			pac_key "obarun archlinux" "$gpg_opts"
 		else
-			pac_key
+			pac_key "obarun archlinux"
 		fi
 	else
 		echo_valid " Gpg key exist, Refresh it..."
 		pacman-key -u $gpg_opts
 	fi
 	
-	# TODO : make a function to let the choice at user to add or not Eric vidal key
-	# or adding a personal key
-	echo_display " Check if Eric Vidal gpg signature exist"
-	if ! pacman-key --list-keys 7B45DAAC $gpg_opts &>/dev/null; then
-		echo_notvalid " Add Eric Vidal gpg signature, please wait"
-		pacman-key -r 7B45DAAC $gpg_opts
-		pacman-key --lsign-key 7B45DAAC $gpg_opts
-	else
-		echo_valid " Eric Vidal gpg signature already exist"
-	fi
-	
 	unset gpg_opts
 	
-	kill_(){
-		local k
-		for k in haveged gpg-agent dirmngr; do
-			killall -r $k 2>/dev/null
-		done
-		unset k
-	}
-	kill_
+	#kill all process before existing, this avoid trouble to umount the rootdir
+	kill_process "haveged gpg-agent dirmngr"
 }
+
+# {1} process e.g. "haveged" or list of process to kill e.g. "haveged dirmngr" 
+kill_process(){
+	local named
+	local -a list_of_process
+	list_of_process=( "$1" )
+	
+	for named in ${list_of_process[@]}; then
+		killall -r $named 2>/dev/null
+	done
+	
+	unset named list_of_process
+}
+
+# ${1} key or list of key to add e.g "7B45DAAC" or "7B45DAAC 0375F9B2"
+# ${2} gpg directory to use, can be empty
+add_gpg(){
+	local gpg_opts named 
+	local -a key_to_add
+	
+	key_to_add=( "$1" )
+	
+	if [[ ! -z "$2" ]]; then
+		gpg_opts="--gpgdir $2"
+	fi
+	
+	# pacman-key -r failed without /root/.gnupg
+	# create it by dirmngr
+	# TODO: find a turn around
+	if [[ ! -d /root/.gnupg ]]; then
+		dirmngr &>/dev/null & kill_process "dirmngr"
+	fi
+	
+	# add the specified key
+	
+	if [[ ! -z ${key_to_add[@]} ]]; then
+		for named in ${key_to_add[@]}; do
+			echo_display " Check if $named gpg signature exist"
+			if ! pacman-key --list-keys $named $gpg_opts &>/dev/null; then
+				echo_notvalid " Add $named gpg signature, please wait"
+				pacman-key -r "$named" $gpg_opts
+				pacman-key --lsign-key "$named" $gpg_opts
+			else
+				echo_valid " $named gpg signature already exist"
+			fi
+		done
+	fi
+	unset gpg_opts named key_to_add
+}	
 
 ## 		Create temporary users
 # ${1} user name to create
