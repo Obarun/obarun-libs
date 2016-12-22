@@ -321,7 +321,7 @@ user_add(){
 	named="${1}"
 	
 	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep ${named}) ]]; then
-		echo_display " Create the temporary ${named} user"
+		echo_display " Create the ${named} user"
 		useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash "${named}"
 	fi
 	
