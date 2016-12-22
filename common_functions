@@ -225,6 +225,9 @@ pac_key(){
 		pacman-key --populate "$named" "$gpg_opts"
 	done
 	
+	#kill all process before existing, this avoid trouble to umount the rootdir
+	kill_process "gpg-agent"
+	
 	unset gpg_opts named name_to_populate
 }
 
@@ -253,22 +256,6 @@ check_gpg(){
 	fi
 	
 	unset gpg_opts
-	
-	#kill all process before existing, this avoid trouble to umount the rootdir
-	kill_process "haveged gpg-agent dirmngr"
-}
-
-# {1} process e.g. "haveged" or list of process to kill e.g. "haveged dirmngr" 
-kill_process(){
-	local named
-	local -a list_of_process
-	list_of_process=( "$1" )
-	
-	for named in ${list_of_process[@]}; then
-		killall -r $named 2>/dev/null
-	done
-	
-	unset named list_of_process
 }
 
 # ${1} key or list of key to add e.g "7B45DAAC" or "7B45DAAC 0375F9B2"
@@ -287,15 +274,17 @@ add_gpg(){
 	# create it by dirmngr
 	# TODO: find a turn around
 	if [[ ! -d /root/.gnupg ]]; then
-		dirmngr &>/dev/null & kill_process "dirmngr"
+		dirmngr --daemon &>/dev/null #& kill_process "dirmngr"
 	fi
 	
-	# add the specified key
+	# start haveged to speed up the process
+	haveged -w 1024
 	
+	# add the specified key
 	if [[ ! -z ${key_to_add[@]} ]]; then
 		for named in ${key_to_add[@]}; do
 			echo_display " Check if $named gpg signature exist"
-			if ! pacman-key --list-keys $named $gpg_opts &>/dev/null; then
+			if ! pacman-key --list-keys "$named" $gpg_opts &>/dev/null; then
 				echo_notvalid " Add $named gpg signature, please wait"
 				pacman-key -r "$named" $gpg_opts
 				pacman-key --lsign-key "$named" $gpg_opts
@@ -304,8 +293,24 @@ add_gpg(){
 			fi
 		done
 	fi
+	
+	kill_process "dirmngr gpg-agent"
+	
 	unset gpg_opts named key_to_add
-}	
+}
+
+# {1} process e.g. "haveged" or list of process to kill e.g. "haveged dirmngr" 
+kill_process(){
+	local named
+	local -a list_of_process
+	list_of_process=( "$1" )
+	
+	for named in ${list_of_process[@]}; then
+		killall -r $named 2>/dev/null
+	done
+	
+	unset named list_of_process
+}
 
 ## 		Create temporary users
 # ${1} user name to create
