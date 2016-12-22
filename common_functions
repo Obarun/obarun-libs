@@ -389,10 +389,9 @@ pac_update(){
 		if ! [ -d "$work_dir/update_package" ]; then
 			echo_notvalid " Create necessary directory"
 			mkdir -p -m0755 "$work_dir/update_package"
-			build_dir="$work_dir/update_package"
-		else
-			build_dir="$work_dir/update_package"
 		fi
+		
+		build_dir="$work_dir/update_package"
 	}
 	
 	# check if pkgbuild exist
@@ -424,8 +423,8 @@ pac_update(){
 		
 		if [[ -z "${status}" ]]; then
 			echo_valid " Git already up to date, nothing to do"
-			return 0
 			sleep 2
+			return 0
 		else
 			# local is out of date, update it
 			echo_notvalid " Local branch is out-of-date, update it..."
