@@ -305,7 +305,7 @@ kill_process(){
 	local -a list_of_process
 	list_of_process=( "$1" )
 	
-	for named in ${list_of_process[@]}; then
+	for named in ${list_of_process[@]}; do
 		killall -r $named 2>/dev/null
 	done
 	
