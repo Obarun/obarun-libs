@@ -222,7 +222,7 @@ pac_key(){
 	
 	for named in ${name_to_populate[@]};do
 		echo_notvalid "populate $named"
-		pacman-key --populate "$named" "$gpg_opts"
+		eval pacman-key --populate "$named" "$gpg_opts"
 	done
 	
 	#kill all process before existing, this avoid trouble to umount the rootdir
@@ -246,9 +246,9 @@ check_gpg(){
 	if (( $? ));then
 		echo_notvalid " Gpg doesn't exist, create it..."
 		if [[ ! -z $gpg_opts ]]; then
-			pac_key "obarun archlinux" "$gpg_opts"
+			pac_key "archlinux obarun" "$gpg_opts"
 		else
-			pac_key "obarun archlinux"
+			pac_key "archlinux obarun"
 		fi
 	else
 		echo_valid " Gpg key exist, Refresh it..."
