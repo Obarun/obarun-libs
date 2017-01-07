@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 # This script is under license BEER-WARE
 # "THE BEER-WARE LICENSE" (Revision 42):
 # <eric@obarun.org> wrote this file.  As long as you retain this notice you
@@ -460,7 +460,7 @@ pac_update(){
 	
 	if ! [ -d "$build_dir/$_pkgname" ]; then
 		cd "$build_dir"
-		echo_notvalid " Clone repository form ${green}[$git_addr]${reset}"
+		echo_notvalid " Clone repository form ${green}[$_adress]${reset}"
 		git clone "$_adress"
 		make_package || die " Impossible to make the package"
 	else
@@ -561,4 +561,29 @@ check_dir(){
 	fi
 	
 	unset dir
+}
+# ${1} opts to pass for the shell
+# ${2} pass 0 to set, 1 to unset
+shellopts_set_unset(){
+	
+	local _opts set_unset 
+	
+	_opts="${1}"
+	set_unset="${2}"
+
+	if (( ! $set_unset )); then
+		shopt -s "${_opts}"
+	else
+		shopt -u "${_opts}"
+	fi	
+}
+
+# save your shell options
+shellopts_save(){
+	declare -rg SHELL_OPTS=$(shopt -p) &>/dev/null
+}
+
+# restore your shell options
+shellopts_restore(){
+	eval "$SHELL_OPTS"
 }
