@@ -218,11 +218,11 @@ pac_key(){
 	echo_display " Start pacman-key"
 	haveged -w 1024
 	
-	pacman-key --init $gpg_opts
+	pacman-key --init ${gpg_opts}
 	
 	for named in ${name_to_populate[@]};do
 		echo_notvalid "populate $named"
-		eval pacman-key --populate "$named" "$gpg_opts"
+		eval pacman-key --populate "$named" ${gpg_opts}
 	done
 	
 	#kill all process before existing, this avoid trouble to umount the rootdir
@@ -234,29 +234,31 @@ pac_key(){
 # ${1} gpg directory to use, can be empty
 check_gpg(){
 	
-	local gpg_opts named 
+	local gpg_opts named gpg_to_pass
 		
-	if [[ ! -z "$1" ]]; then
-		gpg_opts="--gpgdir $1"
+	if [[ ! -z "${1}" ]]; then
+		gpg_opts="--gpgdir ${1}"
+		gpg_to_pass="${1}"
 	fi
 	
 	echo_display " Check if gpg key exist"	
-	pacman-key -u $gpg_opts &>/dev/null
+	pacman-key -u ${gpg_opts} &>/dev/null
 	
 	if (( $? ));then
 		echo_notvalid " Gpg doesn't exist, create it..."
-		if [[ ! -z $gpg_opts ]]; then
-			pac_key "archlinux obarun" "$gpg_opts"
+		if [[ ! -z ${gpg_opts} ]]; then
+			pac_key "archlinux obarun" ${gpg_to_pass}
 		else
 			pac_key "archlinux obarun"
 		fi
 	else
 		echo_valid " Gpg key exist, Refresh it..."
-		pacman-key -u $gpg_opts
+		pacman-key -u ${gpg_opts}
 	fi
 	
-	unset gpg_opts
+	unset gpg_opts gpg_to_pass
 }
+
 
 # ${1} key or list of key to add e.g "7B45DAAC" or "7B45DAAC 0375F9B2"
 # ${2} gpg directory to use, can be empty
