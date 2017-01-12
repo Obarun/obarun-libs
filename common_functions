@@ -72,7 +72,7 @@ die (){
 	if [[ -n "${message}" ]] ; then
 		echo "${bred}==>> Error: ${message}${reset}"
 	else
-		echo "${bred}==>> Error: Script can not continue"
+		echo "${bred}==>> Error: Script can not continue${reset}"
 	fi
 	
 	${_trap}
