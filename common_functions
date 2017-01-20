@@ -380,11 +380,8 @@ pac_update(){
 	_pkgname="${1}"
 	work_dir="${2}"
 	_adress="${3}"
-	_oldpwd=`pwd`
-	_tmpdir=$(mktemp -d /tmp/$_pkgname.XXXXXX)
+	_oldpwd=$(pwd)
 	rc=0
-	
-	echo_display " Check $_pkgname version"
 	
 	# make build_dir directory
 	make_build_dir(){
@@ -396,16 +393,9 @@ pac_update(){
 		build_dir="$work_dir/update_package"
 	}
 	
-	# check if pkgbuild exist
-	copy_pkgbuild(){
-		echo_notvalid " Copy PKGBUILD to ${green}[$build_dir/$_pkgname] to ${green}[$build_dir]${reset}"
-		cp -f "$build_dir/$_pkgname"/PKGBUILD "$build_dir"/PKGBUILD
-	}
-	
 	# make package
 	make_package(){
 		user_add "usertmp"
-		#copy_pkgbuild || die " Impossible to copy PKGBUILD"
 		chown -R usertmp:users "$build_dir"
 		cd "$build_dir/$_pkgname"
 		echo_notvalid " Launch makepkg and install the new version if exist"
@@ -415,10 +405,8 @@ pac_update(){
 	
 	# check git repositories
 	check_update(){
-		cd "$build_dir/$_pkgname"
-	
 		# check the remote branch
-		git fetch origin || die " Impossible to fetch origin"	
+		git fetch origin master || die " Impossible to fetch origin"	
 			
 		# emtpy status variable means up to date
 		status=$(git diff master origin/master)
@@ -430,7 +418,8 @@ pac_update(){
 		else
 			# local is out of date, update it
 			echo_notvalid " Local branch is out-of-date, update it..."
-			git merge origin/master || die " Impossible merge origin to master branch"	
+			git reset --hard origin/master || die " Impossible to reset origin/master"	
+			git pull origin master || die " Impossible merge origin to master branch"	
 			return 1
 		fi
 	}
@@ -438,6 +427,7 @@ pac_update(){
 	# check current version 
 	check_version(){
 		cd "$build_dir/$_pkgname"
+		
 		local curr_version git_version
 		curr_version=$(pacman -Qi $_pkgname | grep "Version" | awk -F": " '{print $2}' | sed 's:-1::')
 		git_version=$(git rev-parse --short HEAD)
@@ -459,6 +449,8 @@ pac_update(){
 	}	
 		
 	make_build_dir
+	
+	echo_display " Check update for $_pkgname"
 	
 	if ! [ -d "$build_dir/$_pkgname" ]; then
 		cd "$build_dir"
