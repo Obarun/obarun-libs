@@ -1,4 +1,10 @@
 #!/usr/bin/bash
+#
+# Authors:
+# Eric Vidal <eric@obarun.org>
+#
+# Copyright (C) 2016 Eric Vidal <eric@obarun.org>
+#
 # This script is under license BEER-WARE
 # "THE BEER-WARE LICENSE" (Revision 42):
 # <eric@obarun.org> wrote this file.  As long as you retain this notice you
