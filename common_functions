@@ -130,14 +130,14 @@ mount_umount(){
 	
 	_umount(){
 		echo_notvalid " Unmounting $1"
-		umount $@
+		umount "$@"
 	}
 			
 	if [[ "$action" == "mount" ]]; then
 		echo_display " Check mounted filesystem on $rep"
 		if ! [[ $(mount | grep "$rep"/proc) ]]; then
 			_mount -t proc proc "$rep/proc" -o nosuid,noexec,nodev 
-			_mount -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev 
+			_mount -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev,ro 
 			_mount -t devtmpfs dev "$rep/dev" -o mode=0755,nosuid
 			_mount -t devpts devpts "$rep/dev/pts" -o mode=0620,gid=5,nosuid,noexec
 			_mount -t tmpfs shm "$rep/dev/shm" -o mode=1777,nosuid,nodev
