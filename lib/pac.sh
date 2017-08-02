@@ -29,7 +29,7 @@ pac_key(){
 		gpg_opts="--gpgdir $2"
 	fi
 	
-	echo_display " Start pacman-key"
+	out_action "Start pacman-key"
 	haveged -w 1024
 	
 	pacman-key --init ${gpg_opts}

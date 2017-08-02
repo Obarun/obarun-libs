@@ -40,17 +40,17 @@ mount_umount(){
 	action="$2"
 	
 	_mount(){
-		echo_notvalid " Mounting $4"
+		out_notvalid "Mounting $4"
 		mount "$@" 
 	}
 	
 	_umount(){
-		echo_notvalid " Unmounting $1"
+		out_notvalid "Unmounting $1"
 		umount "$@"
 	}
 			
 	if [[ "$action" == "mount" ]]; then
-		echo_display " Check mounted filesystem on $rep"
+		out_action "Check mounted filesystem on $rep"
 		if ! [[ $(mount | grep "$rep"/proc) ]]; then
 			_mount -t proc proc "$rep/proc" -o nosuid,noexec,nodev 
 			_mount -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev,ro 
@@ -60,11 +60,11 @@ mount_umount(){
 			_mount -t tmpfs run "$rep/run" -o nosuid,nodev,mode=0755
 			_mount -t tmpfs tmp "$rep/tmp" -o mode=1777,strictatime,nodev,nosuid
 		else
-			echo_valid " Filesystem already mounted in ${rep}"
+			out_valid "Filesystem already mounted in ${rep}"
 		fi
 	fi
 	if [[ "$action" == "umount" ]]; then
-		echo_display " Check mounted filesystem"
+		out_action "Check mounted filesystem"
 		if [[ $(mount | grep "$rep"/proc) ]]; then
 			_umount "$rep/proc"
 			_umount "$rep/sys"
@@ -74,7 +74,7 @@ mount_umount(){
 			_umount "$rep/tmp"
 			_umount "$rep/dev"
 		else
-			echo_valid " Filesystem not mounted in ${rep}"
+			out_valid "Filesystem not mounted in ${rep}"
 		fi
 	fi
 	unset rep action

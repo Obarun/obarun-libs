@@ -20,7 +20,7 @@ gen_fstab(){
 	local _directory
 	_directory="${1}"
 	
-	echo_display " Generate fstab"
+	out_action "Generate fstab"
 	genfstab -p "$_directory" > "$_directory/etc/fstab" || die " Impossible to generate fstab"
 
 	unset _directory
@@ -51,7 +51,7 @@ user_add(){
 	named="${1}"
 	
 	if ! [[ $(awk -F':' '{ print $1}' /etc/passwd | grep ${named}) ]]; then
-		echo_display " Create the ${named} user"
+		out_action "Create the ${named} user"
 		useradd -m -g users -G "wheel,disk,storage,optical,floppy,network" -s /bin/bash "${named}"
 	fi
 	
@@ -65,7 +65,7 @@ user_del(){
 	local named
 	named="${1}"
 	
-	echo_display " Removing user : ${named}"
+	out_action "Removing user : ${named}"
 	userdel -r ${named} 
 		
 	unset named

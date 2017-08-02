@@ -37,9 +37,9 @@ die (){
 	_trap="${2}"
 		
 	if [[ -n "${message}" ]] ; then
-		echo "${bred}==>> Error: ${message}${reset}"
+		out_error "${message}"
 	else
-		echo "${bred}==>> Error: Script can not continue${reset}"
+		out_error "Script can not continue"
 	fi
 	
 	${_trap}

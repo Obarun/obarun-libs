@@ -27,44 +27,6 @@ byellow=${bold}$(tput setaf 3)
 blue=$(tput setaf 4)
 bblue=${bold}$(tput setaf 4)
 
-
-
-echo_bold(){
-	local msg=$1; shift 
-	printf "${bold}${msg}${reset}\n" "${@}" >&1
-}
-echo_info(){
-	local msg=$1; shift 
-	printf "${byellow}==>>${msg} ${reset}\n" "${@}" >&1
-}
-echo_info_menu(){
-	local msg=$1; shift 
-	printf "${byellow}${msg} ${reset}\n" "${@}" >&1
-}
-echo_retry(){
-	local msg=$1; shift 
-	printf "${bblue}==>>${msg} ${reset}\n" "${@}" >&1
-}
-echo_valid(){
-	local msg=$1; shift 
-	printf "${bgreen}    ->${msg} ${reset}\n" "${@}" >&1
-}
-echo_notvalid(){
-	local msg=$1; shift 
-	printf "${byellow}    ->${msg} ${reset}\n" "${@}" >&1
-}
-echo_display(){
-	local msg=$1; shift 
-	printf "${bold}==>>${msg} ${reset}\n" "${@}" >&1
-}
-echo_error(){
-	local msg=$1; shift 
-	printf "${bred}    ->${msg} ${reset}\n" "${@}" >&2
-}
-answer(){
-	echo_retry " Please answer y or n :"
-}
-
 # new output
 
 out_debug() {
@@ -109,4 +71,44 @@ out_answer() {
 out_info() {
 	local msg="${1}"
 	out "${msg}" "${bblue}"
+}
+
+## keep old function for compatibility reason
+
+
+
+echo_bold(){
+	local msg=$1; shift 
+	printf "${bold}${msg}${reset}\n" "${@}" >&1
+}
+echo_info(){
+	local msg=$1; shift 
+	printf "${byellow}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_info_menu(){
+	local msg=$1; shift 
+	printf "${byellow}${msg} ${reset}\n" "${@}" >&1
+}
+echo_retry(){
+	local msg=$1; shift 
+	printf "${bblue}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_valid(){
+	local msg=$1; shift 
+	printf "${bgreen}    ->${msg} ${reset}\n" "${@}" >&1
+}
+echo_notvalid(){
+	local msg=$1; shift 
+	printf "${byellow}    ->${msg} ${reset}\n" "${@}" >&1
+}
+echo_display(){
+	local msg=$1; shift 
+	printf "${bold}==>>${msg} ${reset}\n" "${@}" >&1
+}
+echo_error(){
+	local msg=$1; shift 
+	printf "${bred}    ->${msg} ${reset}\n" "${@}" >&2
+}
+answer(){
+	echo_retry " Please answer y or n :"
 }
