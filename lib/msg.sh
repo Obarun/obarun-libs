@@ -64,3 +64,49 @@ echo_error(){
 answer(){
 	echo_retry " Please answer y or n :"
 }
+
+# new output
+
+out_debug() {
+	if (( $DEBUG )); then
+		printf "%s" "${FUNCNAME[3]}" >&1
+ 	fi
+}
+out() {
+	local msg="${1}" color="${2}"
+	printf "%s %s\n" "${color}:$(out_debug):${reset}" "$msg" >&1
+}
+out_void() {
+	printf "%s\n" ""
+}
+out_menu_title() {
+	local msg="${1}"
+	printf "%s\n" "${bblue}${msg}${reset}" >&1
+}
+out_menu_list() {
+	local msg="${1}"
+	printf "%s\n" "${bold}${msg}${reset}" >&1
+}
+out_action() {
+	local msg="${1}"
+	out "${msg}" "${bold}"
+}
+out_valid() {
+	local msg="${1}"
+	out "${msg}" "${bgreen}"
+}
+out_notvalid(){
+	local msg="${1}"
+	out "${msg}" "${byellow}"
+}
+out_error() {
+	local msg="${1}"
+	out "${msg}" "${bred}"
+}
+out_answer() {
+	out "Please answer y or n :" "${bblue}"
+}
+out_info() {
+	local msg="${1}"
+	out "${msg}" "${bblue}"
+}
