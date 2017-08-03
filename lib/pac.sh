@@ -35,7 +35,7 @@ pac_key(){
 	pacman-key --init ${gpg_opts}
 	
 	for named in ${name_to_populate[@]};do
-		echo_notvalid "populate $named"
+		out_notvalid "populate $named"
 		eval pacman-key --populate "$named" ${gpg_opts}
 	done
 	
@@ -55,18 +55,18 @@ check_gpg(){
 		gpg_to_pass="${1}"
 	fi
 	
-	echo_display " Check if gpg key exist"	
+	out_action "Check if gpg key exist"	
 	pacman-key -u ${gpg_opts} &>/dev/null
 	
 	if (( $? ));then
-		echo_notvalid " Gpg doesn't exist, create it..."
+		out_notvalid "Gpg doesn't exist, create it..."
 		if [[ ! -z ${gpg_opts} ]]; then
 			pac_key "archlinux obarun" ${gpg_to_pass}
 		else
 			pac_key "archlinux obarun"
 		fi
 	else
-		echo_valid " Gpg key exist, Refresh it..."
+		out_action "Gpg key exist, Refresh it..."
 		pacman-key -u ${gpg_opts}
 	fi
 	
@@ -99,13 +99,13 @@ add_gpg(){
 	# add the specified key
 	if [[ ! -z ${key_to_add[@]} ]]; then
 		for named in ${key_to_add[@]}; do
-			echo_display " Check if $named gpg signature exist"
+			out_action "Check if $named gpg signature exist"
 			if ! pacman-key --list-keys "$named" $gpg_opts &>/dev/null; then
-				echo_notvalid " Add $named gpg signature, please wait"
+				out_notvalid "Add $named gpg signature, please wait"
 				pacman-key -r "$named" $gpg_opts
 				pacman-key --lsign-key "$named" $gpg_opts
 			else
-				echo_valid " $named gpg signature already exist"
+				out_action "$named gpg signature already exist"
 			fi
 		done
 	fi
@@ -133,7 +133,7 @@ pac_update(){
 	# make build_dir directory
 	make_build_dir(){
 		if ! [ -d "$work_dir/update_package" ]; then
-			echo_notvalid " Create necessary directory"
+			out_notvalid "Create necessary directory"
 			mkdir -p -m0755 "$work_dir/update_package"
 		fi
 		
@@ -145,7 +145,7 @@ pac_update(){
 		#user_add "usertmp"
 		chown -R "${OWNER}":users "$build_dir"
 		cd "$build_dir/$_pkgname"
-		echo_notvalid " Launch makepkg and install the new version if exist"
+		out_notvalid "Launch makepkg and install the new version if exist"
 		su "${OWNER}" -c "makepkg -Cfi --nosign --noconfirm --needed"
 		sleep 2
 	}
@@ -159,12 +159,12 @@ pac_update(){
 		status=$(git diff master origin/master)
 		
 		if [[ -z "${status}" ]]; then
-			echo_valid " Git already up to date, nothing to do"
+			out_valid "Git already up to date, nothing to do"
 			sleep 2
 			return 0
 		else
 			# local is out of date, update it
-			echo_notvalid " Local branch is out-of-date, update it..."
+			out_notvalid "Local branch is out-of-date, update it..."
 			git reset --hard origin/master || die " Impossible to reset origin/master"	
 			git pull origin master || die " Impossible merge origin to master branch"	
 			return 1
@@ -182,7 +182,7 @@ pac_update(){
 		check_update #|| die " Impossible to udpdate $_pkgname"
 		
 		if (( $? )); then
-			echo_display " $_pkgname is out of date, updating please wait"
+			out_action "$_pkgname is out of date, updating please wait"
 			make_package || die " Impossible to make the package"
 			rc=1
 		fi
@@ -197,11 +197,11 @@ pac_update(){
 		
 	make_build_dir
 	
-	echo_display " Check update for $_pkgname"
+	out_action "Check update for $_pkgname"
 	
 	if ! [ -d "$build_dir/$_pkgname" ]; then
 		cd "$build_dir"
-		echo_notvalid " Clone repository form ${green}[$_adress]${reset}"
+		out_notvalid "Clone repository form ${green}[$_adress]${reset}"
 		git clone "$_adress"
 		make_package || die " Impossible to make the package"
 	else
