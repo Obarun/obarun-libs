@@ -1,0 +1,9 @@
+Changelog for obarun-libs
+
+In 0.1.3
+--------
+	
+	- Pass under ISC license
+	- Add makefile
+	- pac.sh : check_version func : compare tag and commit separately and
+	install only if differs. Use git describe instead of git rev.
