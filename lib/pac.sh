@@ -1,15 +1,12 @@
-#!/usr/bin/bash
-#
-# Authors:
-# Eric Vidal <eric@obarun.org>
-#
-# Copyright (C) 2015-2017 Eric Vidal <eric@obarun.org>
-#
-# This script is under license BEER-WARE
-# "THE BEER-WARE LICENSE" (Revision 42):
-# <eric@obarun.org> wrote this file.  As long as you retain this notice you
-# can do whatever you want with this stuff. If we meet some day, and you think
-# this stuff is worth it, you can buy me a beer in return.   Eric Vidal
+#!@BINDIR@/bash
+# Copyright (c) 2015-2017 Eric Vidal <eric@obarun.org>
+# All rights reserved.
+# 
+# This file is part of Obarun. It is subject to the license terms in
+# the LICENSE file found in the top-level directory of this
+# distribution and at https://github.com/Obarun/obarun-libs/LICENSE
+# This file may not be copied, modified, propagated, or distributed
+# except according to the terms contained in the LICENSE file.
 #
 # pac.sh  - functions for deal with package
 
@@ -175,9 +172,14 @@ pac_update(){
 	check_version(){
 		cd "$build_dir/$_pkgname"
 		
-		local curr_version git_version
+		local rc curr_version git_version curr_tag git_tag curr_commit git_commit
+		
 		curr_version=$(pacman -Qi $_pkgname | grep "Version" | awk -F": " '{print $2}' | sed 's:-1::')
-		git_version=$(git rev-parse --short HEAD)
+		git_version=$(git describe --tags | sed -e 's/-/+/g;s/^v//')
+		curr_tag="${curr_version%%+g*}"
+		git_tag="${git_version%%+g*}"
+		curr_commit="${curr_version##*+g}"
+		git_commit="${git_version##*+g}"
 		
 		check_update #|| die " Impossible to udpdate $_pkgname"
 		
@@ -186,14 +188,20 @@ pac_update(){
 			make_package || die " Impossible to make the package"
 			rc=1
 		fi
-		if ! [[ "$curr_version" == "$git_version" ]]; then
-			if [[ $rc == 1 ]]; then
-				unset rc
-			else
+		if [[ $rc != 1 ]]; then			
+			rc=""
+			if [[ "${curr_tag}" < "${git_tag}" ]] ; then
 				make_package || die " Impossible to make the package"
+				rc=1
+			elif [[ $rc != 1 ]]; then
+				if [[ "${curr_commit}" != "${git_commit}" ]];then
+					make_package || die " Impossible to make the package"
+				fi
 			fi
 		fi
-	}	
+		
+		unset rc curr_version git_version curr_tag git_tag curr_commit git_commit
+	}
 		
 	make_build_dir
 	
