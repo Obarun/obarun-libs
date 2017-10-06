@@ -162,8 +162,9 @@ pac_update(){
 		else
 			# local is out of date, update it
 			out_notvalid "Local branch is out-of-date, update it..."
-			git reset --hard origin/master || die " Impossible to reset origin/master"	
-			git pull origin master || die " Impossible merge origin to master branch"	
+			git fetch --tags || die "Impossible to fetch tags"
+			git reset --hard origin/master || die "Impossible to reset origin/master"	
+			git pull origin master || die "Impossible merge origin to master branch"	
 			return 1
 		fi
 	}
