@@ -139,12 +139,12 @@ pac_update(){
 	
 	# make package
 	make_package(){
-		#user_add "usertmp"
+		echo "%${OWNER} ALL=(ALL) NOPASSWD: ALL #obarun-libs" >> /etc/sudoers
 		chown -R "${OWNER}":users "$build_dir"
 		cd "$build_dir/$_pkgname"
 		out_notvalid "Launch makepkg and install the new version if exist"
 		su "${OWNER}" -c "makepkg -Cfi --nosign --noconfirm --needed"
-		sleep 2
+		sed -i "s;%${OWNER} ALL=(ALL) NOPASSWD: ALL #obarun-libs;;" /etc/sudoers
 	}
 	
 	# check git repositories
