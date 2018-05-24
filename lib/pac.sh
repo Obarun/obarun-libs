@@ -143,7 +143,7 @@ pac_update(){
 		chown -R "${OWNER}":users "$build_dir"
 		cd "$build_dir/$_pkgname"
 		out_notvalid "Launch makepkg and install the new version if exist"
-		su "${OWNER}" -c "makepkg -Cfi --nosign --noconfirm --needed"
+		su "${OWNER}" -c "makepkg -Csfi --nosign --noconfirm --needed"
 		sed -i "s;%wheel ALL=(ALL) NOPASSWD: ALL #obarun-libs;;" /etc/sudoers
 	}
 	
@@ -210,7 +210,7 @@ pac_update(){
 	
 	if ! [ -d "$build_dir/$_pkgname" ]; then
 		cd "$build_dir"
-		out_notvalid "Clone repository form ${green}[$_adress]${reset}"
+		out_notvalid "Clone repository from ${green}[$_adress]${reset}"
 		git clone "$_adress"
 		make_package || die " Impossible to make the package"
 	else
