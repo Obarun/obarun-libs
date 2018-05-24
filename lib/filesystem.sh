@@ -32,10 +32,13 @@ check_mountpoint(){
 # $2 action to do : mount/umount
 
 mount_umount(){
-	local rep action
+	local rep action len
 	rep="$1"
 	action="$2"
-	
+	len="${#rep}"
+	if [[ "${rep:$len-1:1}" == "/" ]]; then
+		rep="${rep%?}"
+	fi
 	_mount(){
 		out_notvalid "Mounting $4"
 		mount "$@" 
