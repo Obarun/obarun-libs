@@ -1,5 +1,12 @@
 Changelog for obarun-libs
 
+In 0.1.4
+--------
+	
+	- Bugs fix
+	- Install missing dependencies at package update
+	- use group wheel instead of SUDO_OWNER
+	
 In 0.1.3
 --------
 	
