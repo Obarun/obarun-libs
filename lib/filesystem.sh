@@ -27,6 +27,18 @@ check_mountpoint(){
 	unset _directory
 }
 
+mount_one() {
+	local msg=$1; shift
+	out_notvalid "Mounting $msg"
+	mount "$@" 
+}
+
+umount_one() {
+	local msg=$1; shift
+	out_notvalid "Unmounting $msg"
+	umount "$@"
+}
+
 ## 		Mount/unmount filesystem
 # $1 name of directory to check 
 # $2 action to do : mount/umount
@@ -39,80 +51,71 @@ mount_umount(){
 	if [[ "${rep:$len-1:1}" == "/" ]]; then
 		rep="${rep%?}"
 	fi
-	_mount(){
-		out_notvalid "Mounting $4"
-		mount "$@" 
-	}
-	
-	_umount(){
-		out_notvalid "Unmounting $1"
-		umount "$@"
-	}
-			
+				
 	if [[ "$action" == "mount" ]]; then
 		out_action "Check mounted filesystem on $rep"
 		if ! [[ $(mount | grep "$rep"/proc) ]]; then
-			_mount -t proc proc "$rep/proc" -o nosuid,noexec,nodev 
+			mount_one "$rep/proc" -t proc proc "$rep/proc" -o nosuid,noexec,nodev 
 		else
 			out_valid "$rep/proc already mounted"
 		fi
 		if ! [[ $(mount | grep "$rep"/sys) ]]; then
-			_mount -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev,ro 
+			mount_one "$rep/sys" -t sysfs sys "$rep/sys" -o nosuid,noexec,nodev,ro 
 		else
 			out_valid "$rep/sys already mounted"
 		fi
 		if ! [[ $(mount | grep "$rep"/dev) ]]; then
-			_mount -t devtmpfs dev "$rep/dev" -o mode=0755,nosuid
-			_mount -t devpts devpts "$rep/dev/pts" -o mode=0620,gid=5,nosuid,noexec
-			_mount -t tmpfs shm "$rep/dev/shm" -o mode=1777,nosuid,nodev
+			mount_one "$rep/dev" -t devtmpfs dev "$rep/dev" -o mode=0755,nosuid
+			mount_one "$rep/dev/pts" -t devpts devpts "$rep/dev/pts" -o mode=0620,gid=5,nosuid,noexec
+			mount_one "$rep/dev/shm" -t tmpfs shm "$rep/dev/shm" -o mode=1777,nosuid,nodev
 		else
 			out_valid "$rep/dev already mounted"
 		fi
 		if ! [[ $(mount | grep "$rep"/run) ]]; then
-			_mount -t tmpfs run "$rep/run" -o nosuid,nodev,mode=0755
+			mount_one "$rep/run" -t tmpfs run "$rep/run" -o nosuid,nodev,mode=0755
 		else
 			out_valid "$rep/run already mounted"
 		fi
 		if ! [[ $(mount | grep "$rep"/tmp) ]]; then
-			_mount -t tmpfs tmp "$rep/tmp" -o mode=1777,strictatime,nodev,nosuid
+			mount_one "$rep/tmp" -t tmpfs tmp "$rep/tmp" -o mode=1777,strictatime,nodev,nosuid
 		else
 			out_valid "$rep/tmp already mounted"
-		fi
+		fi		
 	fi
 	if [[ "$action" == "umount" ]]; then
 		out_action "Check mounted filesystem on $rep"
 		if [[ $(mount | grep "$rep"/proc) ]]; then
-			_umount "$rep/proc"
+			umount_one "$rep/proc" "$rep/proc"
 		else
 			out_valid "$rep/proc not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/sys) ]]; then
-			_umount "$rep/sys"
+			umount_one "$rep/sys" "$rep/sys"
 		else
 			out_valid "$rep/sys not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/dev/pts) ]]; then
-			_umount "$rep/dev/pts"
+			umount_one "$rep/dev/pts" "$rep/dev/pts"
 		else
 			out_valid "$rep/dev/pts not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/dev/shm) ]]; then
-			_umount "$rep/dev/shm"
+			umount_one "$rep/dev/shm" "$rep/dev/shm"
 		else
 			out_valid "$rep/dev/shm not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/run) ]]; then
-			_umount "$rep/run"
+			umount_one "$rep/run" "$rep/run"
 		else
 			out_valid "$rep/run not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/tmp) ]]; then
-			_umount "$rep/tmp"
+			umount_one "$rep/tmp" "$rep/tmp"
 		else
 			out_valid "$rep/tmp not mounted"
 		fi
 		if [[ $(mount | grep "$rep"/dev) ]]; then	
-			_umount "$rep/dev"
+			umount_one "$rep/dev" "$rep/dev"
 		else
 			out_valid "$rep/dev not mounted"
 		fi
